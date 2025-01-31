@@ -25,7 +25,7 @@ const openai = new OpenAI({
 });
 
 // Define supported models
-const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"] as const;
+const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini", "o3-mini", "o3-mini-low", "o3-mini-high"] as const;
 const DEFAULT_MODEL = "gpt-4o" as const;
 type SupportedModel = typeof SUPPORTED_MODELS[number];
 
@@ -99,22 +99,34 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{
                     messages: Array<{ role: string; content: string }>;
                     model?: SupportedModel;
                 };
-
+                
                 // Validate model
                 if (!SUPPORTED_MODELS.includes(model!)) {
                     throw new Error(`Unsupported model: ${model}. Must be one of: ${SUPPORTED_MODELS.join(", ")}`);
                 }
-
+                
+                // Map o3-mini variants: always use "o3-mini" as the model value, with reasoning_effort based on variant.
+                let targetModel = model!;
+                let extraParams: Record<string, unknown> = {};
+                if (model === "o3-mini-high") {
+                    targetModel = "o3-mini";
+                    extraParams = { reasoning_effort: "high" };
+                } else if (model === "o3-mini-low") {
+                    targetModel = "o3-mini";
+                    extraParams = { reasoning_effort: "low" };
+                }
+                
                 // Convert messages to OpenAI's expected format
                 const messages: ChatCompletionMessageParam[] = rawMessages.map(msg => ({
                     role: msg.role as "system" | "user" | "assistant",
                     content: msg.content
                 }));
-
-                // Call OpenAI API with fixed temperature
+                
+                // Call OpenAI API with mapped model parameters
                 const completion = await openai.chat.completions.create({
                     messages,
-                    model: model!
+                    model: targetModel,
+                    ...extraParams
                 });
 
                 // Return the response
