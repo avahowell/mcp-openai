@@ -25,7 +25,7 @@ const openai = new OpenAI({
 });
 
 // Define supported models
-const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini", "o3-mini", "o3-mini-low", "o3-mini-high"] as const;
+const SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini", "o1", "o3-mini", "o3-mini-low", "o3-mini-high"] as const;
 const DEFAULT_MODEL = "gpt-4o" as const;
 type SupportedModel = typeof SUPPORTED_MODELS[number];
 
@@ -99,7 +99,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{
                     messages: Array<{ role: string; content: string }>;
                     model?: SupportedModel;
                 };
-                
+ 
                 // Validate model
                 if (!SUPPORTED_MODELS.includes(model!)) {
                     throw new Error(`Unsupported model: ${model}. Must be one of: ${SUPPORTED_MODELS.join(", ")}`);
@@ -121,8 +121,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request): Promise<{
                     role: msg.role as "system" | "user" | "assistant",
                     content: msg.content
                 }));
-                
-                // Call OpenAI API with mapped model parameters
+ 
+                // Call OpenAI API with fixed temperature and reasoning model parameters
                 const completion = await openai.chat.completions.create({
                     messages,
                     model: targetModel,
@@ -160,3 +160,4 @@ server.connect(transport).catch((error) => {
     console.error("Failed to start server:", error);
     process.exit(1);
 });
+
